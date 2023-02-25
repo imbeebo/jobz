@@ -1,0 +1,74 @@
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    HttpStatus,
+    Param,
+    Post,
+    Put,
+    Query,
+    Req,
+    Res,
+    UploadedFiles,
+} from '@nestjs/common';
+import { Video } from '../model/video.schema';
+import { VideoService } from '../service/video.service';
+import { Request, Response } from 'express';
+
+@Controller('/api/v1/file')
+export class FileController {
+    constructor(private readonly videoService: VideoService) { }
+
+    @Post()
+    async createBook(
+        @Res() response: Response,
+        @Req() request: Request,
+        @Body() video: Video,
+        @UploadedFiles()
+        files: { video?: Express.Multer.File[]; cover?: Express.Multer.File[] },
+    ) {
+        const requestBody = {
+            createdBy: request.user,
+            title: video.title,
+            video: files.video?.[0].filename,
+            coverImage: files.cover?.[0].filename,
+        };
+        const newVideo = await this.videoService.createVideo(requestBody);
+        return response.status(HttpStatus.CREATED).json({
+            newVideo,
+        });
+    }
+
+    @Get()
+    async read(@Query() id): Promise<Object> {
+        return await this.videoService.readVideo(id);
+    }
+
+    @Get('/:id')
+    async stream(
+        @Param('id') id,
+        @Res() response: Response,
+        @Req() request: Request,
+    ) {
+        return this.videoService.streamVideo(id, response, request);
+    }
+
+    @Put('/:id')
+    async update(
+        @Res() response: Response,
+        @Param('id') id,
+        @Body() video: Video,
+    ) {
+        const updatedVideo = await this.videoService.update(id, video);
+        return response.status(HttpStatus.OK).json(updatedVideo);
+    }
+
+    @Delete('/:id')
+    async delete(@Res() response: Response, @Param('id') id) {
+        await this.videoService.delete(id);
+        return response.status(HttpStatus.OK).json({
+            user: null,
+        });
+    }
+}
